@@ -35,6 +35,7 @@ COLS = os.environ.get("COLS", 3)
 DTYPE = torch.float32
 serialize_in = DTYPE
 redisClient = redis.Redis(host='localhost', port=6379, decode_responses=True)
+temp = 1e-3
 
 def field_to_tenor(field: List[int], my_fig: int, enemy_fig: int) -> torch.Tensor:
     positions = np.resize(np.array(field), (ROWS, COLS))
@@ -51,7 +52,7 @@ def application(env, start_response):
             torch.tensor(positions==int(game['my_figure'][0]), dtype=serialize_in),
             torch.tensor(positions==int(game['enemy_figure'][0]), dtype=serialize_in)
         ])
-        posed = DataPosition(field_to_tenor(json.loads(game['field'][0]), int(game['my_figure']), int(game['enemy_figure'])))
+        posed = DataPosition(analyzible_field)#DataPosition(field_to_tenor(json.loads(game['field'][0]), int(game['my_figure']), int(game['enemy_figure'])))
         redisClient.lpush(processing_line, redis_enc(posed))
         _, res = redisClient.blpop(posed.uuid)
     elif(env['REQUEST_METHOD'] == 'POST'):
