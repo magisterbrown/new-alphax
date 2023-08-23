@@ -1,0 +1,276 @@
+E
+======================================================================
+ERROR: test_get (__main__.TestServer.test_get)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 203, in _new_conn
+    sock = connection.create_connection(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/connection.py", line 85, in create_connection
+    raise err
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/connection.py", line 73, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 790, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 496, in _make_request
+    conn.request(
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 395, in request
+    self.endheaders()
+  File "/usr/lib/python3.11/http/client.py", line 1281, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "/usr/lib/python3.11/http/client.py", line 1041, in _send_output
+    self.send(msg)
+  File "/usr/lib/python3.11/http/client.py", line 979, in send
+    self.connect()
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 243, in connect
+    self.sock = self._new_conn()
+                ^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 218, in _new_conn
+    raise NewConnectionError(
+urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPConnection object at 0x7f010f38afd0>: Failed to establish a new connection: [Errno 111] Connection refused
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 844, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/retry.py", line 515, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /?my_field=%5B%5B0%2C+1%2C+1%5D%2C+%5B1%2C+1%2C+0%5D%2C+%5B0%2C+1%2C+0%5D%5D&enemy_field=%5B%5B0%2C+0%2C+0%5D%2C+%5B1%2C+1%2C+1%5D%2C+%5B0%2C+1%2C+0%5D%5D (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f010f38afd0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/model_server/test_server.py", line 15, in test_get
+    resp = requests.get(self.url,params={"my_field": json.dumps(self.fielda), "enemy_field": json.dumps(self.fieldb)})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 519, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=9000): Max retries exceeded with url: /?my_field=%5B%5B0%2C+1%2C+1%5D%2C+%5B1%2C+1%2C+0%5D%2C+%5B0%2C+1%2C+0%5D%5D&enemy_field=%5B%5B0%2C+0%2C+0%5D%2C+%5B1%2C+1%2C+1%5D%2C+%5B0%2C+1%2C+0%5D%5D (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7f010f38afd0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+
+----------------------------------------------------------------------
+Ran 1 test in 0.004s
+
+FAILED (errors=1)
+E
+*** Starting uWSGI 2.0.22 (64bit) on [Thu Aug 17 08:18:48 2023] ***
+======================================================================
+compiled with version: 12.2.0 on 16 August 2023 13:46:34
+os: Linux-6.1.0-kali9-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.27-1kali1 (2023-05-12)
+nodename: polzovatel
+machine: x86_64
+clock source: unix
+ERROR: test_get (__main__.TestServer.test_get)
+detected number of CPU cores: 12
+current working directory: /home/magisterbrownie/rojects/kaggle/alphax/model_server
+detected binary path: /home/magisterbrownie/rojects/kaggle/alphax/venv/bin/uwsgi
+----------------------------------------------------------------------
+!!! no internal routing support, rebuild with pcre support !!!
+*** WARNING: you are running uWSGI without its master process manager ***
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 790, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 536, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 461, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 1378, in getresponse
+    response.begin()
+  File "/usr/lib/python3.11/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+http.client.RemoteDisconnected: Remote end closed connection without response
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 844, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/retry.py", line 470, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 790, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 536, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 461, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 1378, in getresponse
+    response.begin()
+  File "/usr/lib/python3.11/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/model_server/test_server.py", line 15, in test_get
+    resp = requests.get(self.url,params={"my_field": json.dumps(self.fielda), "enemy_field": json.dumps(self.fieldb)})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 501, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+your processes number limit is 126735
+your memory page size is 4096 bytes
+detected max file descriptor number: 1024
+
+lock engine: pthread robust mutexes
+----------------------------------------------------------------------
+Ran 1 test in 18.288s
+
+FAILED (errors=1)
+thunder lock: disabled (you can enable it with --thunder-lock)
+uWSGI http bound on :9000 fd 4
+spawned uWSGI http 1 (pid: 41604)
+uwsgi socket 0 bound to TCP address 127.0.0.1:34361 (port auto-assigned) fd 3
+Python version: 3.11.4 (main, Jun  7 2023, 10:13:09) [GCC 12.2.0]
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x7effa0b5a018
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 72904 bytes (71 KB) for 1 cores
+*** Operational MODE: single process ***
+StArted SERVER
+WSGI app 0 (mountpoint='') ready in 0 seconds on interpreter 0x7effa0b5a018 pid: 41600 (default app)
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI worker 1 (and the only) (pid: 41600, cores: 1)
+pdb is running on 127.0.0.1:4444
+E
+======================================================================
+ERROR: test_get (__main__.TestServer.test_get)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 790, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 536, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 461, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 1378, in getresponse
+    response.begin()
+  File "/usr/lib/python3.11/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+http.client.RemoteDisconnected: Remote end closed connection without response
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 486, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 844, in urlopen
+    retries = retries.increment(
+              ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/retry.py", line 470, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/util/util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 790, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connectionpool.py", line 536, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/urllib3/connection.py", line 461, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 1378, in getresponse
+    response.begin()
+  File "/usr/lib/python3.11/http/client.py", line 318, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/http/client.py", line 287, in _read_status
+    raise RemoteDisconnected("Remote end closed connection without"
+urllib3.exceptions.ProtocolError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/magisterbrownie/rojects/kaggle/alphax/model_server/test_server.py", line 15, in test_get
+    resp = requests.get(self.url,params={"my_field": json.dumps(self.fielda), "enemy_field": json.dumps(self.fieldb)})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 73, in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/magisterbrownie/rojects/kaggle/alphax/venv/lib/python3.11/site-packages/requests/adapters.py", line 501, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+
+----------------------------------------------------------------------
+Ran 1 test in 13.489s
+
+FAILED (errors=1)
+.
+----------------------------------------------------------------------
+Ran 1 test in 14.429s
+
+OK
+b'Hello World'
