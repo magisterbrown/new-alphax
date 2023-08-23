@@ -1,4 +1,4 @@
-*** Starting uWSGI 2.0.22 (64bit) on [Tue Aug 22 21:15:04 2023] ***
+*** Starting uWSGI 2.0.22 (64bit) on [Wed Aug 23 10:29:20 2023] ***
 compiled with version: 12.2.0 on 16 August 2023 13:46:34
 os: Linux-6.1.0-kali9-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.27-1kali1 (2023-05-12)
 nodename: polzovatel
@@ -15,24 +15,27 @@ detected max file descriptor number: 1024
 lock engine: pthread robust mutexes
 thunder lock: disabled (you can enable it with --thunder-lock)
 uWSGI http bound on :9000 fd 4
-spawned uWSGI http 1 (pid: 183750)
-uwsgi socket 0 bound to TCP address 127.0.0.1:36147 (port auto-assigned) fd 3
+spawned uWSGI http 1 (pid: 203185)
+uwsgi socket 0 bound to TCP address 127.0.0.1:41253 (port auto-assigned) fd 3
 Python version: 3.11.4 (main, Jun  7 2023, 10:13:09) [GCC 12.2.0]
 *** Python threads support is disabled. You can enable it with --enable-threads ***
-Python main interpreter initialized at 0x7f3d86b5a018
+Python main interpreter initialized at 0x7f468635a018
 your server socket listen backlog is limited to 100 connections
 your mercy for graceful operations on workers is 60 seconds
 mapped 72904 bytes (71 KB) for 1 cores
 *** Operational MODE: single process ***
 StArted SERVER
-WSGI app 0 (mountpoint='') ready in 1 seconds on interpreter 0x7f3d86b5a018 pid: 183747 (default app)
+WSGI app 0 (mountpoint='') ready in 3 seconds on interpreter 0x7f468635a018 pid: 203182 (default app)
 *** uWSGI is running in multiple interpreter mode ***
-spawned uWSGI worker 1 (and the only) (pid: 183747, cores: 1)
-Runner IDD 183773
+spawned uWSGI worker 1 (and the only) (pid: 203182, cores: 1)
+Runner IDD 203208
+a
+a
 Warning: Input is not a terminal (fd=0).
+a
 Traceback (most recent call last):
-  File "server.py", line 48, in application
+  File "server.py", line 78, in application
     return [res.encode('utf-8')]
             ^^^
 UnboundLocalError: cannot access local variable 'res' where it is not associated with a value
-[pid: 183747|app: 0|req: 1/1] 127.0.0.1 () {36 vars in 422 bytes} [Tue Aug 22 21:15:05 2023] POST / => generated 0 bytes in 770897 msecs (HTTP/1.1 200) 1 headers in 44 bytes (0 switches on core 0)
+[pid: 203182|app: 0|req: 1/1] 127.0.0.1 () {36 vars in 423 bytes} [Wed Aug 23 10:29:23 2023] POST / => generated 0 bytes in 299508 msecs (HTTP/1.1 200) 1 headers in 44 bytes (0 switches on core 0)

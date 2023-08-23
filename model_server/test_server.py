@@ -4,6 +4,7 @@ import numpy as np
 import json
 import scipy
 from unittest import skip
+import pretty_errors
 import torch
 
 class TestServer(unittest.TestCase):
@@ -20,19 +21,14 @@ class TestServer(unittest.TestCase):
 
     def test_post(self):
         print('AAAAAAAAA')
-        data = {'steps':[{'field':self.field, 'probs':[{1:3,2:25}], 'player_fig':1}], 'winner':1}
+        flds = [
+                {'field':self.field, 'probs':{1:3,2:25}, 'player_fig':1, 'enemy_fig': 2},
+                {'field':self.field, 'probs':dict(), 'player_fig':2, 'enemy_fig': 1},
+                {'field':self.field, 'probs':{0:4,1:4,2:4}, 'player_fig':1, 'enemy_fig': 2},
+                ]
+        data = {'steps':flds, 'winner':1}
         temp=1e-3
-        #resp = requests.post(self.url, json = data)
-        probs = data['fields']
-        probs = {1:3,2:3}
-        COLS = 3
-        serialize_in = torch.float32
-        mcts_probs = torch.zeros((COLS),dtype=serialize_in)
-        mcts_probs[list(probs.keys())] = torch.tensor(scipy.special.softmax(1.0/temp * np.log(np.array(list(probs.values())) + 1e-10)),dtype=serialize_in)
-        import ipdb; ipdb.set_trace()
-
-        print(act_probs)
-
+        resp = requests.post(self.url, json = data)
         print(resp.content)
 
 

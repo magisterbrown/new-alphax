@@ -14,6 +14,8 @@ import pickle
 import base64
 import io
 import uuid
+import scipy
+import random
 
 class DataPosition:
     def __init__(self, field: torch.Tensor):
@@ -29,6 +31,8 @@ class PlayedPosition:
 redis_enc = lambda x: base64.b64encode(pickle.dumps(x))
 redis_dec = lambda x: pickle.loads(base64.b64decode(x))
 processing_line = 'to_analyze'
+training_line = 'to_learn'
+learn_batch_size = 2 
 batch_size = 16
 ROWS = os.environ.get("ROWS", 3)
 COLS = os.environ.get("COLS", 3)
@@ -47,23 +51,28 @@ def field_to_tenor(field: List[int], my_fig: int, enemy_fig: int) -> torch.Tenso
 def application(env, start_response):
     if(env['REQUEST_METHOD'] == 'GET'):
         game = parse_qs(env['QUERY_STRING'])
-        positions = np.resize(np.array(json.loads(game['field'][0])), (ROWS, COLS))
-        analyzible_field = torch.stack([
-            torch.tensor(positions==int(game['my_figure'][0]), dtype=serialize_in),
-            torch.tensor(positions==int(game['enemy_figure'][0]), dtype=serialize_in)
-        ])
-        posed = DataPosition(analyzible_field)#DataPosition(field_to_tenor(json.loads(game['field'][0]), int(game['my_figure']), int(game['enemy_figure'])))
+        posed = DataPosition(field_to_tenor(json.loads(game['field'][0]), int(game['my_figure']), int(game['enemy_figure'])))
         redisClient.lpush(processing_line, redis_enc(posed))
         _, res = redisClient.blpop(posed.uuid)
+
     elif(env['REQUEST_METHOD'] == 'POST'):
         data = json.loads(env['wsgi.input'].read().decode('utf-8'))
-        result = list()
+        results = list()
         for step in data['steps']:
             probs=step['probs']
             mcts_probs = torch.zeros((COLS),dtype=serialize_in)
-            mcts_probs[list(probs.keys())] = torch.tensor(scipy.special.softmax(1.0/temp * np.log(np.array(list(probs.values())) + 1e-10)),dtype=serialize_in)
-            result.append
-            import madbg; madbg.set_trace()
+            if len(probs.keys()):
+                mcts_probs[np.array(list(probs.keys()), dtype=np.int64)] = torch.tensor(scipy.special.softmax(1.0/temp * np.log(np.array(list(probs.values())) + 1e-10)),dtype=serialize_in)
+            field = field_to_tenor(step['field'], step['player_fig'], step['enemy_fig'])
+            value = torch.tensor([step['player_fig'] == data['winner']],dtype=serialize_in)
+            to_train = redis_enc(PlayedPosition(field, mcts_probs, value))
+            list_size = redisClient.llen(training_line)
+            if list_size<learn_batch_size:
+                redisClient.lpush(training_line, to_train)
+            else:
+                import madbg; madbg.set_trace()
+                redisClient.lset(training_line, random.randint(0, list_size - 1), to_train)
+            print('a')
         pass
     start_response('200 OK', [('Content-Type','text/html')])
     return [res.encode('utf-8')]
