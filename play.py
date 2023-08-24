@@ -7,8 +7,8 @@ import urllib3
 import json
 
 rows = 3
-columns = 3
-win = 2 
+columns = 4
+win = 3 
 get_field = lambda x: np.array(x.state[0]['observation']['board'])
 disp_env = lambda x: np.reshape(get_field(x), (rows, columns))
 http = urllib3.PoolManager()
@@ -24,7 +24,6 @@ def playout(env: Environment, root: TreeNode, rand: float = 0):
     if env.done:
         #assert env.state[1-leaf.player]['reward']!=-1, 'Lost with own step whaat???'
         leaf.update(0 if env.state[0]['reward']==0 else 1) 
-        print('Played')
         return 
     field = env.state[0]['observation']['board']
     resp = http.request('GET', server, fields={"field": json.dumps(field), "my_figure": figures[leaf.player], "enemy_figure": figures[not leaf.player]}).json()
@@ -40,17 +39,20 @@ def playout(env: Environment, root: TreeNode, rand: float = 0):
 def play():
     env = make("connectx", debug=False, configuration={'rows':rows,'columns': columns,'inarow':win})
     root = TreeNode()
+    steps = list()
     while not env.done:
         for i in range(60):
             playout(env, root)
-        dot = tree_to_dot(root)
-        with open('tree.dot', 'w') as f:
-            f.write(dot)
-
-        step = 1#int(np.random.choice(legal_moves))
-        print(type(env))
+        #open('tree.dot', 'w').write(tree_to_dot(root))
+        visits = {k: v._visit_count for k,v in root.children.items()}
+        steps.append({'field':env.state[0]['observation']['board'], 'probs': visits, 'player_fig': figures[root.player], 'enemy_fig': figures[not root.player]})
+        step = max(visits, key=visits.get)#int(np.random.choice(legal_moves))
         env.step([step]*2)
-        break
+        root = root.children[step]
+    value = 0 if env.state[0]['reward']==0 else figures[not root.player]
+    data = {'steps':steps, 'winner': value}
+    resp = http.request('POST', server, body=json.dumps(data)).json()
+    print(resp)
 
 
 
