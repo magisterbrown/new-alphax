@@ -4,3 +4,7 @@ venv/
 *.ipynb
 *.png
 *.dot
+*.pth
+*.rdb
+*.log
+*.out

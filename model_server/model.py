@@ -4,6 +4,12 @@ from torchvision.models.resnet import BasicBlock
 import torch.nn.functional as F
 
 
+def alpha_loss(output, target):
+        crocs_entorpy = F.cross_entropy(output[0],target[0])
+        mse = F.mse_loss(output[1],target[1])
+        return crocs_entorpy+mse
+                
+
 
 class ConnNet(nn.Module):
     def __init__(self,  cols: int, rows: int):

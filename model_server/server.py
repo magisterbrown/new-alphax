@@ -3,12 +3,14 @@ import json
 import torch
 import numpy as np
 import time
+import torch.nn.functional as F
 from torch.multiprocessing import Process, Queue, Pipe
 from urllib.parse import parse_qs
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from model import ConnNet
 from typing import List
+from dataclasses import asdict
 import redis
 import pickle
 import base64
@@ -16,6 +18,7 @@ import io
 import uuid
 import scipy
 import random
+import asyncio
 
 class DataPosition:
     def __init__(self, field: torch.Tensor):
@@ -85,12 +88,43 @@ def model_runner():
         _, inputs = redisClient.blmpop(0, 1, processing_line, direction='LEFT', count=batch_size)
         fields = list(map(redis_dec, inputs))
         decoded = torch.stack(list(map(lambda x: x.field ,fields)))
-        policies, values = model(decoded)
+        with torch.no_grad():
+            model.eval()
+            policies, values = model(decoded)
         for policy, value, pos_data in zip(policies, values, fields):
             redisClient.lpush(pos_data.uuid, json.dumps({'policy': policy.tolist(), 'value': value.tolist()}))
+
+
+
+def model_trainer():
+    model = ConnNet(COLS, ROWS)
+    lr = 2e-3
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    while redisClient.llen(training_line) < learn_batch_size:
+        asyncio.sleep(0.05)
+    
+    model.train()
+    repets = 4
+    while True:
+        import madbg; madbg.set_trace()
+        for i in range(repets):
+            all_values = redisClient.lrange(training_line, 0, -1)
+            fields, probs, values = list(map(torch.stack, zip(*map(lambda x:list(asdict(x).values()),map(redis_dec, all_values)))))
+            pred_probs, pred_values = model(fields)
+            loss = F.cross_entropy(pred_probs, probs)+F.mse_loss(pred_values, values)
+            loss.backward()
+            optimizer.step()
+        torch.save(model.state_dict(), 'checkpoints/latest.pth')
+
+        break
+
+
+    pass
     
     
 if __name__ == 'uwsgi_file_server':
     prc = Process(target=model_runner, )
+    trn = Process(target=model_trainer, )
     prc.start()
+    trn.start()
     print("StArted SERVER")

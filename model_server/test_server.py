@@ -1,24 +1,39 @@
 import unittest
+import redis
 import requests
 import numpy as np
 import json
 import scipy
 from unittest import skip
-import pretty_errors
 import torch
+from server import model_trainer
+import random
 
 class TestServer(unittest.TestCase):
     url = 'http://localhost:9000'
-    fields_size = (3*3)
+    redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+    cols = 4
+    rows = 3
     def setUp(self):
-        
-        self.field =  np.random.randint(0,3, self.fields_size).tolist()
+        self.fields_size = self.rows*self.cols
+        self.field = np.random.randint(0,3, self.fields_size).tolist()
+        self.figs = [1,2]
+
+    def gen_random_game(self, steps: int):
+        res = list()
+        for i in range(steps):
+            field = np.random.randint(0,3, self.fields_size).tolist()
+            steps = random.sample(range(0, self.cols), random.randint(0, self.cols))
+            steps = {step: random.randint(1, 255) for step in steps}
+            random.shuffle(self.figs)
+            res.append({'field': field, 'probs': steps, 'player_fig':self.figs[0], 'enemy_fig': self.figs[1]})
+        return {'steps': res, 'winner': random.choice(self.figs)}
     
     @skip
     def test_get(self):
         resp = requests.get(self.url,params={"field": json.dumps(self.field), "my_figure": 1, "enemy_figure": 2})
         print(resp.content)
-
+    @skip
     def test_post(self):
         print('AAAAAAAAA')
         flds = [
@@ -30,7 +45,13 @@ class TestServer(unittest.TestCase):
         temp=1e-3
         resp = requests.post(self.url, json = data)
         print(resp.content)
+    
+    def test_train(self):
+        self.redis_client.ltrim("to_learn", 1, 0)
+        data=self.gen_random_game(8)
+        resp = requests.post(self.url, json = data)
 
+        #model_trainer()
 
 if __name__ == '__main__':
     unittest.main()
