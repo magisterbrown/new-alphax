@@ -8,3 +8,4 @@ venv/
 *.rdb
 *.log
 *.out
+model_server/board_logs/*

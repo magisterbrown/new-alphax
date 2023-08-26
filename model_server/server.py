@@ -5,12 +5,14 @@ import numpy as np
 import time
 import torch.nn.functional as F
 from torch.multiprocessing import Process, Queue, Pipe
+from torch.utils.tensorboard import SummaryWriter
 from urllib.parse import parse_qs
 from dataclasses import dataclass
 from multiprocessing.connection import Connection
 from model import ConnNet
-from typing import List
+from typing import List, Dict
 from dataclasses import asdict
+import matplotlib.pyplot as plt
 import redis
 import pickle
 import base64
@@ -18,7 +20,7 @@ import io
 import uuid
 import scipy
 import random
-import asyncio
+import time
 
 class DataPosition:
     def __init__(self, field: torch.Tensor):
@@ -30,6 +32,7 @@ class PlayedPosition:
     field: torch.Tensor
     probs: torch.Tensor
     value: torch.Tensor
+
 
 redis_enc = lambda x: base64.b64encode(pickle.dumps(x))
 redis_dec = lambda x: pickle.loads(base64.b64decode(x))
@@ -43,6 +46,10 @@ DTYPE = torch.float32
 serialize_in = DTYPE
 redisClient = redis.Redis(host='localhost', port=6379, decode_responses=True)
 temp = 1e-3
+updates = dict()
+updates[2]=4
+updates[7]=6
+
 
 def field_to_tenor(field: List[int], my_fig: int, enemy_fig: int) -> torch.Tensor:
     positions = np.reshape(np.array(field), (ROWS, COLS))
@@ -73,6 +80,9 @@ def application(env, start_response):
             to_train = redis_enc(PlayedPosition(field, mcts_probs, value))
             list_size = redisClient.llen(training_line)
             if list_size<learn_batch_size:
+                writer = SummaryWriter(log_dir='board_logs')
+                writer.add_scalar('Loading first batch',list_size, list_size)
+                writer.flush()
                 redisClient.lpush(training_line, to_train)
             else:
                 redisClient.lset(training_line, random.randint(0, list_size - 1), to_train)
@@ -94,33 +104,53 @@ def model_runner():
         for policy, value, pos_data in zip(policies, values, fields):
             redisClient.lpush(pos_data.uuid, json.dumps({'policy': policy.tolist(), 'value': value.tolist()}))
 
-
+def add_reads(reads: Dict[int, int], values: List[str]) -> Dict[int, int]:
+    renewed = dict()
+    for v in values:
+        key = hash(v)
+        try:
+            renewed[key] = reads[key]+1
+        except:
+            renewed[key] = 0
+    return renewed 
 
 def model_trainer():
+    writer = SummaryWriter(log_dir='board_logs')
+    fig, ax = plt.subplots()
+    def report_reads(reads: Dict[int, int], step: int):
+        ax.clear()
+        ax.bar(range(len(reads)), reads.values())
+        writer.add_figure('histt', fig, global_step=step)
+        writer.flush()
+
     model = ConnNet(COLS, ROWS)
+    
     lr = 2e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     while redisClient.llen(training_line) < learn_batch_size:
-        asyncio.sleep(0.05)
+        time.sleep(0.05)
     
     model.train()
+    reads = dict()
     repets = 4
+    step = 0 
     while True:
-        import madbg; madbg.set_trace()
-        for i in range(repets):
-            all_values = redisClient.lrange(training_line, 0, -1)
-            fields, probs, values = list(map(torch.stack, zip(*map(lambda x:list(asdict(x).values()),map(redis_dec, all_values)))))
-            pred_probs, pred_values = model(fields)
-            loss = F.cross_entropy(pred_probs, probs)+F.mse_loss(pred_values, values)
-            loss.backward()
-            optimizer.step()
-        torch.save(model.state_dict(), 'checkpoints/latest.pth')
-
-        break
-
-
+        all_values = redisClient.lrange(training_line, 0, -1)
+        reads = add_reads(reads, all_values)
+        report_reads(reads, step)
+        fields, probs, values = list(map(torch.stack, zip(*map(lambda x:list(asdict(x).values()),map(redis_dec, all_values)))))
+        pred_probs, pred_values = model(fields)
+        loss = F.cross_entropy(pred_probs, probs)+F.mse_loss(pred_values, values)
+        loss.backward()
+        optimizer.step()
+        report = loss.cpu().detach().item()
+        writer.add_scalar('Loss/train',report, step)
+        writer.flush()
+        step+=1
+        if(step%repets==0):
+            torch.save(model.state_dict(), 'checkpoints/latest.pth')
+            break
     pass
-    
     
 if __name__ == 'uwsgi_file_server':
     prc = Process(target=model_runner, )
