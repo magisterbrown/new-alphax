@@ -40,7 +40,7 @@ redis_enc = lambda x: base64.b64encode(pickle.dumps(x))
 redis_dec = lambda x: pickle.loads(base64.b64decode(x))
 processing_line = 'to_analyze'
 training_line = 'to_learn'
-learn_batch_size = 36 
+learn_batch_size = 64
 batch_size = 16
 ROWS = int(os.environ.get("ROWS", 3))
 COLS = int(os.environ.get("COLS", 4))
@@ -89,9 +89,11 @@ def application(env, start_response):
 
 def model_runner():
     print('RUNNER SPAWNED')
+    device = torch.device('cuda')
     writer = SummaryWriter(log_dir='board_logs')
     preds_count = 0
     model = ConnNet(COLS, ROWS)
+    model.to(device)
     weights_age=0
     proc_size = 1
     report_freq=30 
@@ -113,7 +115,7 @@ def model_runner():
         decoded = torch.stack(list(map(lambda x: x.field ,fields)))
         with torch.no_grad():
             model.eval()
-            policies, values = model(decoded)
+            policies, values = model(decoded.to(device))
         for policy, value, pos_data in zip(policies, values, fields):
             redisClient.lpush(pos_data.uuid, json.dumps({'policy': policy.tolist(), 'value': value.tolist()}))
 
@@ -129,6 +131,7 @@ def add_reads(reads: Dict[int, int], values: List[str]) -> Dict[int, int]:
 
 ten_num = lambda x:x.cpu().detach().item()
 def model_trainer():
+    device = torch.device('cuda')
     writer = SummaryWriter(log_dir='board_logs')
     fig, ax = plt.subplots()
     def report_reads(reads: dict[int, int], step: int):
@@ -137,6 +140,7 @@ def model_trainer():
         writer.add_figure('Training/age of samples', fig, global_step=step)
 
     model = ConnNet(COLS, ROWS)
+    model.to(device)
     
     lr = 2e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
@@ -145,6 +149,8 @@ def model_trainer():
         batch_load_progress.n = redisClient.llen(training_line)
         writer.add_text('Processing/Loading first batch',str(batch_load_progress))
         time.sleep(0.5)
+    batch_load_progress.n = learn_batch_size
+    writer.add_text('Processing/Loading first batch',str(batch_load_progress))
     
     model.train()
     reads = dict()
@@ -154,13 +160,12 @@ def model_trainer():
     while True:
         all_values = redisClient.lrange(training_line, 0, -1)
         reads = add_reads(reads, all_values)
-        report_reads(reads, step)
         fields, probs, values = list(map(torch.stack, zip(*map(lambda x:list(asdict(x).values()),map(redis_dec, all_values)))))
         
         for i in range(epochs):
             optimizer.zero_grad()
-            pred_probs, pred_values = model(fields)
-            loss = F.cross_entropy(pred_probs, probs)+F.mse_loss(pred_values, values)
+            pred_probs, pred_values = model(fields.to(device))
+            loss = F.cross_entropy(pred_probs, probs.to(device))+F.mse_loss(pred_values, values.to(device))
             loss.backward()
             optimizer.step()
             try:
@@ -174,9 +179,10 @@ def model_trainer():
         writer.add_scalar('Training/Percent of draws',ten_num((values==0).sum())/values.shape[0], step)
         writer.flush()
         step+=1
-        if(step%repeats==0):
+        if(step%repeats==(repeats-1)):
+            print('Finished Training')
             torch.save(model.state_dict(), weight_path)
-
+            report_reads(reads, step)
     
 if __name__ == 'uwsgi_file_server':
     prc = Process(target=model_runner, daemon=True)

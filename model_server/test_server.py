@@ -8,6 +8,8 @@ from unittest import skip
 import torch
 from server import model_trainer
 import random
+import time
+import os
 
 class TestServer(unittest.TestCase):
     url = 'http://localhost:9000'
@@ -46,12 +48,30 @@ class TestServer(unittest.TestCase):
         resp = requests.post(self.url, json = data)
         print(resp.content)
     
+    @skip
     def test_train(self):
         self.redis_client.ltrim("to_learn", 1, 0)
         data=self.gen_random_game(8)
         resp = requests.post(self.url, json = data)
 
         #model_trainer()
+
+    def test_speed_to_save(self):
+        datafile = 'checkpoints/latest.pth'
+        self.redis_client.ltrim("to_analyze", 1, 0)
+        self.redis_client.ltrim("to_learn", 1, 0)
+        try: 
+            os.remove(datafile) 
+        except:
+            pass
+        start = time.time()
+        data=self.gen_random_game(512)
+        resp = requests.post(self.url, json = data)
+        print('Posted games')
+        while not os.path.exists('checkpoints/latest.pth'):
+            time.sleep(1)
+
+        print(f'Trained in {time.time()-start:.2f} seconds')
 
 if __name__ == '__main__':
     unittest.main()
