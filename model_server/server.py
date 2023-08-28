@@ -40,8 +40,7 @@ redis_enc = lambda x: base64.b64encode(pickle.dumps(x))
 redis_dec = lambda x: pickle.loads(base64.b64decode(x))
 processing_line = 'to_analyze'
 training_line = 'to_learn'
-learn_batch_size = 8 
-batch_load_progress = tqdm(total=learn_batch_size, desc='Loading first batch')
+learn_batch_size = 36 
 batch_size = 16
 ROWS = int(os.environ.get("ROWS", 3))
 COLS = int(os.environ.get("COLS", 4))
@@ -80,34 +79,36 @@ def application(env, start_response):
             to_train = redis_enc(PlayedPosition(field, mcts_probs, value))
             list_size = redisClient.llen(training_line)
             if list_size<learn_batch_size:
-                writer = SummaryWriter(log_dir='board_logs')
-                batch_load_progress.update(1)
-                writer.add_text('Processing/Loading first batch',str(batch_load_progress))
                 redisClient.lpush(training_line, to_train)
             else:
                 redisClient.lset(training_line, random.randint(0, list_size - 1), to_train)
 
-            writer.flush()
             res = json.dumps({'status': 'OK'})
     start_response('200 OK', [('Content-Type','text/html')])
     return [res.encode('utf-8')]
 
-preds_count = 0
 def model_runner():
+    print('RUNNER SPAWNED')
     writer = SummaryWriter(log_dir='board_logs')
+    preds_count = 0
     model = ConnNet(COLS, ROWS)
     weights_age=0
+    proc_size = 1
+    report_freq=30 
     while True:
         try:
             new_age = os.path.getmtime(weight_path)
             if(weights_age+10<new_age):
                 model.load_state_dict(torch.load(weight_path))
-                writer.add_text('Processing/Loaded model weights at', str(datetime.datetime.fromtimestamp(new_age)))
+                writer.add_text('Processing/Loaded model weights at', f'Loaded weights at: {datetime.datetime.fromtimestamp(new_age)}')
         except:
             pass
         _, inputs = redisClient.blmpop(0, 1, processing_line, direction='LEFT', count=batch_size)
         fields = list(map(redis_dec, inputs))
-        writer.add_scalar('Processing/Prediction batch size',len(field), preds_count)
+        proc_size=proc_size*(1-1/report_freq)+len(fields)*(1/report_freq)
+        if(preds_count%report_freq==0):
+            writer.add_scalar('Processing/Prediction batch size',len(fields), preds_count)
+            writer.flush()
         preds_count+=1
         decoded = torch.stack(list(map(lambda x: x.field ,fields)))
         with torch.no_grad():
@@ -115,7 +116,6 @@ def model_runner():
             policies, values = model(decoded)
         for policy, value, pos_data in zip(policies, values, fields):
             redisClient.lpush(pos_data.uuid, json.dumps({'policy': policy.tolist(), 'value': value.tolist()}))
-        writer.flush()
 
 def add_reads(reads: Dict[int, int], values: List[str]) -> Dict[int, int]:
     renewed = dict()
@@ -127,21 +127,24 @@ def add_reads(reads: Dict[int, int], values: List[str]) -> Dict[int, int]:
             renewed[key] = 0
     return renewed 
 
+ten_num = lambda x:x.cpu().detach().item()
 def model_trainer():
     writer = SummaryWriter(log_dir='board_logs')
     fig, ax = plt.subplots()
-    def report_reads(reads: Dict[int, int], step: int):
+    def report_reads(reads: dict[int, int], step: int):
         ax.clear()
         ax.bar(range(len(reads)), reads.values())
-        writer.add_figure('Training/Age of samples', fig, global_step=step)
-        writer.flush()
+        writer.add_figure('Training/age of samples', fig, global_step=step)
 
     model = ConnNet(COLS, ROWS)
     
     lr = 2e-3
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
+    batch_load_progress = tqdm(total=learn_batch_size, desc='loading first batch')
     while redisClient.llen(training_line) < learn_batch_size:
-        time.sleep(0.05)
+        batch_load_progress.n = redisClient.llen(training_line)
+        writer.add_text('Processing/Loading first batch',str(batch_load_progress))
+        time.sleep(0.5)
     
     model.train()
     reads = dict()
@@ -166,19 +169,18 @@ def model_trainer():
             except NameError:
                 old_probs, old_values = pred_probs, pred_values 
 
-        writer.add_scalar('Training/Loss',loss.cpu().detach().item(), step)
-        writer.add_scalar('Training/KL divergence',kl.cpu().detach().item(), step)
+        writer.add_scalar('Training/Loss',ten_num(loss), step)
+        writer.add_scalar('Training/KL divergence',ten_num(kl), step)
+        writer.add_scalar('Training/Percent of draws',ten_num((values==0).sum())/values.shape[0], step)
         writer.flush()
         step+=1
         if(step%repeats==0):
             torch.save(model.state_dict(), weight_path)
-            break
-    import madbg; madbg.set_trace()
 
     
 if __name__ == 'uwsgi_file_server':
-    prc = Process(target=model_runner, )
-    trn = Process(target=model_trainer, )
+    prc = Process(target=model_runner, daemon=True)
+    trn = Process(target=model_trainer, daemon=True)
     prc.start()
     trn.start()
     print("StArted SERVER")

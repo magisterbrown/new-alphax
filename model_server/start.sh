@@ -5,4 +5,4 @@
 #redis-cli LTRIM to_learn 1 0
 #sleep 0.4
 ./prestart.sh
-uwsgi --http :9000 --wsgi-file server.py
+uwsgi --processes 4 --threads 2 --http :9000 --wsgi-file server.py

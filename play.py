@@ -26,7 +26,8 @@ def playout(env: Environment, root: TreeNode, rand: float = 0):
         leaf.update(0 if env.state[0]['reward']==0 else 1) 
         return 
     field = env.state[0]['observation']['board']
-    resp = http.request('GET', server, fields={"field": json.dumps(field), "my_figure": figures[leaf.player], "enemy_figure": figures[not leaf.player]}).json()
+    resp = http.request('GET', server, fields={"field": json.dumps(field), "my_figure": figures[leaf.player], "enemy_figure": figures[not leaf.player]})#.json()
+    resp = json.loads(resp.data.decode('utf-8'))
     predicted_probs = np.array(resp['policy'])
     value = resp['value'][0]
     predicted_probs = predicted_probs*(1-rand) + np.random.dirichlet(np.ones(columns),size=1)[0]*rand
@@ -41,8 +42,8 @@ def play():
     root = TreeNode()
     steps = list()
     while not env.done:
-        for i in range(60):
-            playout(env, root)
+        for i in range(120):
+            playout(env, root, rand=0.25)
         #open('tree.dot', 'w').write(tree_to_dot(root))
         visits = {k: v._visit_count for k,v in root.children.items()}
         steps.append({'field':env.state[0]['observation']['board'], 'probs': visits, 'player_fig': figures[root.player], 'enemy_fig': figures[not root.player]})
@@ -51,9 +52,9 @@ def play():
         root = root.children[step]
     value = 0 if env.state[0]['reward']==0 else figures[not root.player]
     data = {'steps':steps, 'winner': value}
-    resp = http.request('POST', server, body=json.dumps(data)).json()
+    resp = http.request('POST', server, body=json.dumps(data))
+    resp = json.loads(resp.data.decode('utf-8'))
     print(resp)
 
 
 
-play()
