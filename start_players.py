@@ -9,7 +9,7 @@ def start_play(idx: int):
     return idx 
 
 if __name__ == '__main__':
-    processes = 6
+    processes = 9
     with Pool(processes) as p:
         res = p.map(start_play, range(processes))
         print(res)

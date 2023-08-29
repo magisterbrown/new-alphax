@@ -48,14 +48,13 @@ class TestServer(unittest.TestCase):
         resp = requests.post(self.url, json = data)
         print(resp.content)
     
-    @skip
     def test_train(self):
         self.redis_client.ltrim("to_learn", 1, 0)
-        data=self.gen_random_game(8)
+        data=self.gen_random_game(32)
         resp = requests.post(self.url, json = data)
 
         #model_trainer()
-
+    @skip
     def test_speed_to_save(self):
         datafile = 'checkpoints/latest.pth'
         self.redis_client.ltrim("to_analyze", 1, 0)

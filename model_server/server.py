@@ -40,7 +40,7 @@ redis_enc = lambda x: base64.b64encode(pickle.dumps(x))
 redis_dec = lambda x: pickle.loads(base64.b64decode(x))
 processing_line = 'to_analyze'
 training_line = 'to_learn'
-learn_batch_size = 64
+learn_batch_size = 256
 batch_size = 16
 ROWS = int(os.environ.get("ROWS", 3))
 COLS = int(os.environ.get("COLS", 4))
@@ -129,6 +129,13 @@ def add_reads(reads: Dict[int, int], values: List[str]) -> Dict[int, int]:
             renewed[key] = 0
     return renewed 
 
+
+def set_learning_rate(optimizer, lr):
+    """Sets the learning rate to the given value"""
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+
 ten_num = lambda x:x.cpu().detach().item()
 def model_trainer():
     device = torch.device('cuda')
@@ -143,6 +150,8 @@ def model_trainer():
     model.to(device)
     
     lr = 2e-3
+    lr_mult=1
+    kl_targ=0.02
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
     batch_load_progress = tqdm(total=learn_batch_size, desc='loading first batch')
     while redisClient.llen(training_line) < learn_batch_size:
@@ -154,16 +163,17 @@ def model_trainer():
     
     model.train()
     reads = dict()
-    repeats = 4
-    epochs = 3
+    repeats = 40
+    epochs = 5
     step = 0 
     while True:
         all_values = redisClient.lrange(training_line, 0, -1)
         reads = add_reads(reads, all_values)
         fields, probs, values = list(map(torch.stack, zip(*map(lambda x:list(asdict(x).values()),map(redis_dec, all_values)))))
-        
+        kl = kl_targ
         for i in range(epochs):
             optimizer.zero_grad()
+            set_learning_rate(optimizer, lr*lr_mult)
             pred_probs, pred_values = model(fields.to(device))
             loss = F.cross_entropy(pred_probs, probs.to(device))+F.mse_loss(pred_values, values.to(device))
             loss.backward()
@@ -173,14 +183,24 @@ def model_trainer():
                     kl = torch.mean(torch.sum(old_probs*(torch.log(old_probs+1e-10)-torch.log(pred_probs+1e-10)),axis=1))
             except NameError:
                 old_probs, old_values = pred_probs, pred_values 
-
+            if kl > kl_targ*4:
+                break
+        del old_probs, old_values
+        kl = ten_num(kl)
         writer.add_scalar('Training/Loss',ten_num(loss), step)
-        writer.add_scalar('Training/KL divergence',ten_num(kl), step)
+        writer.add_scalar('Training/Learning Rate',lr*lr_mult, step)
+        writer.add_scalar('Training/KL divergence',kl, step)
         writer.add_scalar('Training/Percent of draws',ten_num((values==0).sum())/values.shape[0], step)
         writer.flush()
+
+        if(kl > (kl_targ * 2)):
+            lr_mult /= 1.5
+        elif(kl < (kl_targ / 2)):
+            lr_mult *= 1.5
+        lr_mult=max(min(lr_mult, 10), 0.1)
+
         step+=1
         if(step%repeats==(repeats-1)):
-            print('Finished Training')
             torch.save(model.state_dict(), weight_path)
             report_reads(reads, step)
     
