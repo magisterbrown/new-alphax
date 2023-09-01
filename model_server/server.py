@@ -72,6 +72,7 @@ def application(env, start_response):
             probs=step['probs']
             mcts_probs = torch.zeros((COLS),dtype=serialize_in)
             if len(probs.keys()):
+                #TODO: get probabilities from use
                 mcts_probs[np.array(list(probs.keys()), dtype=np.int64)] = torch.tensor(scipy.special.softmax(1.0/temp * np.log(np.array(list(probs.values())) + 1e-10)),dtype=serialize_in)
             field = field_to_tenor(step['field'], step['player_fig'], step['enemy_fig'])
             value = 0 if data['winner']==0 else -1 if step['player_fig'] == data['winner'] else 1
