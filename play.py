@@ -9,10 +9,12 @@ import copy
 import numpy as np
 import urllib3
 import json
+import scipy
 
 rows = 3
 columns = 4
 win = 3 
+rand = 0.25
 get_field = lambda x: np.array(x.state[0]['observation']['board'])
 disp_env = lambda x: np.reshape(get_field(x), (rows, columns))
 http = urllib3.PoolManager()
@@ -41,6 +43,8 @@ figures = [1,2]
 #    leaf.expand(predicted_probs)
 #
 #    leaf.update(value)
+def visits_to_probs(probs: List[int], temp: float=1e-3) -> NDArray[float]:
+    return scipy.special.softmax(1.0/temp * np.log(np.array(probs) + 1e-10))
 
 def playout(board: List[int], 
         conf: Struct,
@@ -87,8 +91,10 @@ def play_record():
         visits = {k: v._visit_count for k,v in root.children.items()}
         # TODO: submit visits as probailities not as counts
         steps.append({'field': board, 'probs': visits, 'player_fig': figures[root.player], 'enemy_fig': figures[not root.player]})
-        #And randomness to probability mentioned previously and choose using it
-        step = max(visits, key=visits.get)#int(np.random.choice(legal_moves))
+        visit_probs = visits_to_probs(list(visits.values()))
+        visit_probs = visit_probs*(1-rand)+np.random.dirichlet(np.ones(visit_probs.shape),size=1)[0]*rand
+        
+        step = np.random.choice(list(visits.keys()), p=visit_probs)
         env.step([step]*2)
         root = root.children[step]
     value = 0 if env.state[0]['reward']==0 else figures[not root.player]
@@ -97,5 +103,4 @@ def play_record():
     resp = json.loads(resp.data.decode('utf-8'))
     print(resp)
 
-play_record()
 

@@ -1,10 +1,10 @@
 from multiprocessing import Pool
-from play import play
+from play import play_record
 import time
 
 def start_play(idx: int):
     while True:
-        play() 
+        play_record() 
 
     return idx 
 
